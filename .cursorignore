@@ -1,0 +1,13 @@
+# Environment (contains secrets)
+.env
+
+# Vendor
+vendor/
+
+# Test binaries & coverage
+*.exe
+*.test
+*.out
+
+# OS
+.DS_Store
