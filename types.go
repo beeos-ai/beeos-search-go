@@ -56,12 +56,22 @@ type FetchResponse struct {
 	SourceURL   string `json:"source_url"`
 }
 
+// ExtraField describes an additional configuration field for a provider.
+type ExtraField struct {
+	Key      string `json:"key"`
+	Label    string `json:"label"`
+	Required bool   `json:"required"`
+}
+
 // ProviderInfo describes a registered search provider.
 type ProviderInfo struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Regions []string `json:"regions"`
-	Status  string `json:"status"`
+	ID          string       `json:"id"`
+	Name        string       `json:"name"`
+	Regions     []string     `json:"regions"`
+	Status      string       `json:"status"`
+	RequiresKey bool         `json:"requires_key"`
+	KeyCount    int          `json:"key_count,omitempty"`
+	ExtraFields []ExtraField `json:"extra_fields,omitempty"`
 }
 
 // APIKey represents an API key record (without the secret).
