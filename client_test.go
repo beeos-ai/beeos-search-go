@@ -113,6 +113,59 @@ func TestClient_APIError(t *testing.T) {
 	}
 }
 
+func TestClient_APIError_NestedBody(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte(`{"error":{"code":"UNAUTHORIZED","message":"invalid API key"}}`))
+	}))
+	defer srv.Close()
+
+	c := beeos.NewClient(srv.URL, "bad-key")
+	_, err := c.Search(context.Background(), &beeos.SearchRequest{Query: "test"})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	apiErr, ok := err.(*beeos.APIError)
+	if !ok {
+		t.Fatalf("expected APIError, got %T: %v", err, err)
+	}
+	if apiErr.StatusCode != 401 {
+		t.Errorf("expected status 401, got %d", apiErr.StatusCode)
+	}
+	if apiErr.Code != "UNAUTHORIZED" {
+		t.Errorf("expected code UNAUTHORIZED, got %q", apiErr.Code)
+	}
+	if apiErr.Message != "invalid API key" {
+		t.Errorf("expected message 'invalid API key', got %q", apiErr.Message)
+	}
+}
+
+func TestClient_APIError_RateLimited(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusTooManyRequests)
+		w.Write([]byte(`{"error":{"code":"RATE_LIMITED","message":"rate limit exceeded"}}`))
+	}))
+	defer srv.Close()
+
+	c := beeos.NewClient(srv.URL, "test-key")
+	_, err := c.Search(context.Background(), &beeos.SearchRequest{Query: "test"})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	apiErr, ok := err.(*beeos.APIError)
+	if !ok {
+		t.Fatalf("expected APIError, got %T: %v", err, err)
+	}
+	if apiErr.StatusCode != 429 {
+		t.Errorf("expected status 429, got %d", apiErr.StatusCode)
+	}
+	if apiErr.Code != "RATE_LIMITED" {
+		t.Errorf("expected code RATE_LIMITED, got %q", apiErr.Code)
+	}
+}
+
 func TestClient_Healthz(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/healthz" {
