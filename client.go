@@ -152,7 +152,13 @@ func doJSONRequest(ctx context.Context, hc *http.Client, baseURL, token, method,
 
 	if resp.StatusCode >= 400 {
 		apiErr := &APIError{StatusCode: resp.StatusCode}
-		if json.Unmarshal(data, apiErr) != nil {
+		var wrapper struct {
+			Error APIError `json:"error"`
+		}
+		if json.Unmarshal(data, &wrapper) == nil && wrapper.Error.Code != "" {
+			apiErr.Code = wrapper.Error.Code
+			apiErr.Message = wrapper.Error.Message
+		} else if json.Unmarshal(data, apiErr) != nil || apiErr.Code == "" {
 			apiErr.Code = http.StatusText(resp.StatusCode)
 			apiErr.Message = string(data)
 		}
